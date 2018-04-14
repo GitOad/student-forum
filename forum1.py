@@ -2,6 +2,7 @@ from flask import Flask
 from flask import render_template,request,redirect,url_for,session
 from models import User
 from exts import db
+from werkzeug.security import generate_password_hash, check_password_hash
 
 import config
 
@@ -21,6 +22,7 @@ def login():
     else:
         email = request.form.get('email')
         password = request.form.get('password')
+        password = generate_password_hash(password)
         user = User.query.filter(User.email == email,User.password == password).first()
         if user:
             session['user_id']=user.id
@@ -30,10 +32,10 @@ def login():
         else:
             return u'email or password is invalid'
 
-@app.route('/regist/',methods=["GET","POST"])
-def regist():
+@app.route('/register/',methods=["GET","POST"])
+def register():
     if request.method=="GET":
-        return render_template('regist.html')
+        return render_template('register.html')
     else:
         email = request.form.get('email')
         username = request.form.get('username')
@@ -45,11 +47,12 @@ def regist():
         if user:
             return u'This email is already registed. Please change another one'
         else:
-    # check whether two passwords are the same
+        # check whether two passwords are the same
             if password1!=password2:
                 return u'Passwords are not the same.'
             else:
-                user=User(email=email,username=username,password=password1)
+                password=generate_password_hash(password1)
+                user=User(email=email,username=username,password=password)
                 db.session.add(user)
                 db.session.commit()
                 return redirect(url_for('login'))
