@@ -22,15 +22,20 @@ def login():
     else:
         email = request.form.get('email')
         password = request.form.get('password')
-        password = generate_password_hash(password)
-        user = User.query.filter(User.email == email,User.password == password).first()
+        # password = generate_password_hash(password)
+        # user = User.query.filter(User.email == email,User.password == password).first()
+        # if user:
+        user = User.query.filter(User.email == email).first()
         if user:
-            session['user_id']=user.id
-            #如果想在31天内都不需要登录
-            session.permanent=True
-            return redirect(url_for('index'))
+            if check_password_hash(user.password, password):
+                session['user_id']=user.id
+                #如果想在31天内都不需要登录
+                session.permanent=True
+                return redirect(url_for('index'))
+            else:
+                return u'The password is wrong.'
         else:
-            return u'email or password is invalid'
+            return u'The email is invalid.'
 
 @app.route('/register/',methods=["GET","POST"])
 def register():
