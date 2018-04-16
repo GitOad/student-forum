@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+
+{% block title %}Details{% endblock %}
+
+{% block head %}
+    <link rel="stylesheet" href="{{ url_for('static',filename='css/detail.css') }}">
+{% endblock %}
+
+{% block main %}
+    <h3 class="page-title">{{ question.title }}</h3>
+    <p class="question-information">
+        <span>Author: {{ question.author.username }}</span>
+        <span>Time:{{ question.create_time }}</span>
+    </p>
+    <hr>
+    <p class="question-content">{{ question.content }}</p>
+{#    <hr>#}
+{#    <h3 class="page-title">aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa</h3>#}
+{#    <p class="question-information">#}
+{#        <span>Author: cc</span>#}
+{#        <span>Time:2017-01-01 20:00:00</span>#}
+{#    </p>#}
+{#    <hr>#}
+{#    <p class="question-content">#}
+{#    网易云课堂，是网易公司打造的在线实用技能学习平台，该平台于2012年12月底正式上线，主要为学习者提供海量、优质的课程，用户可以根据自身的学习程度，自主#}
+{#    </p>#}
+{#    <hr>#}
+    <h4 class="comment-group-title">Comment ({{ question.answers|length }}) :</h4>
+    <form action=" { url_for('add_answer') " method="post">
+        <div class="form-group">
+            <input name="answer_content" type="text" class="form-control" placeholder="Please fill your comment">
+            <input type="hidden" name="question_id" value="{{ question.id }}">
+        </div>
+        <div class="form-group" style="text-align: right;">
+            <button class="btn btn_primary">comment</button>
+        </div>
+    </form>
+    <ul class="answer-list">
+        {% for foo in answer in question.answers %}
+            <li>
+                <div class="user-info">
+                    <span class="username">{{{ answer.author.username }} </span>#}
+                    <span class="creat-time">{{{ answer.create_time }} </span>#}
+                 </div>
+                  <p class="answer-content">{{ answer.content }} </p>
+            </li>
+        {% endfor %}
+    </ul>
+{% endblock %}

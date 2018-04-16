@@ -1,0 +1,34 @@
+.main{
+    padding: 20px;
+}
+.question-information{
+    text-align: center;
+    margin-top: 20px;
+}
+
+.answer-list {
+   padding-left: 0;
+}
+.answer-list li{
+    list-style: none;
+    border-bottom: 1px solid #eeeeee;
+}
+
+.user-info {
+    font-size: 16px;
+    color: #9b9b9b;
+    line-height: 40px;
+}
+
+.user-info .username{
+    margin-left: 20px;
+
+}
+
+.user-info .creat-time{
+    float: right;
+}
+
+.answer-content{
+    margin-left: 20px;
+}
