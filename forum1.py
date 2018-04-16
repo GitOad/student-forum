@@ -17,7 +17,12 @@ def index():
     context = {
         'questions': Question.query.order_by('-create_time').all()
     }
-    return render_template('index.html',**context)
+    if session.get('user_id'):
+        user_id = session.get('user_id')
+        user = User.query.filter(User.id == user_id).first()
+        return render_template('index.html',user = user, **context)
+    else:
+        return render_template('index.html',**context)
 
 @app.route('/login/',methods=["GET","POST"])
 def login():
