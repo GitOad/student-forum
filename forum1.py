@@ -4,6 +4,7 @@ from models import User,Question,Answer
 from exts import db
 from werkzeug.security import generate_password_hash, check_password_hash
 from decorators import login_required
+from datetime import datetime
 
 import config
 
@@ -36,9 +37,11 @@ def login():
         # if user:
         user = User.query.filter(User.email == email).first()
         if user:
-            user.point = user.point + 5
             if check_password_hash(user.password, password):
+                user.point = user.point + 5
                 session['user_id']=user.id
+                session['login_time']=user.last_login_time
+                user.last_login_time=datetime.now()
                 #如果想在31天内都不需要登录
                 session.permanent=True
                 return redirect(url_for('index'))
@@ -46,6 +49,7 @@ def login():
                 return u'The password is wrong.'
         else:
             return u'The email is invalid.'
+
 
 @app.route('/regist/',methods=["GET","POST"])
 def regist():
@@ -115,6 +119,30 @@ def add_answer():
 def logout():
     session.clear()
     return redirect(url_for('login'))
+
+@app.route('/edit/', methods=['GET','POST'])
+@login_required
+def edit():
+    if request.method == 'GET':
+        return render_template('question.html')
+    else:
+        birthday = request.form.get('birthday')
+        gender = request.form.get('gender')
+        age = request.form.get('age')
+        major = request.form.get('major')
+        #group 代表class
+        group = request.form.get('group')
+        hobbies = request.form.get('hobbies')
+        introduction=request.form.get('introduction')
+
+        information = Information(birthday=birthday, gender=gender, age=age, major=major, group=group, hobbies=hobbies,introduction=introduction)
+        user_id = session.get('user_id')
+        user = User.query.filter(User.id == user_id).first()
+
+        information.owner = user
+        db.session.add(information)
+        db.session.commit()
+        return redirect(url_for('info', user_id=user_id))
 
 if __name__ == '__main__':
     app.run()
