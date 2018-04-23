@@ -51,20 +51,22 @@ def login():
             return u'The email is invalid.'
 
 
-@app.route('/regist/',methods=["GET","POST"])
-def regist():
+@app.route('/register/',methods=["GET","POST"])
+def register():
     if request.method=="GET":
-        return render_template('regist.html')
+        return render_template('register.html')
     else:
         email = request.form.get('email')
         username = request.form.get('username')
         password1 = request.form.get('password1')
         password2 = request.form.get('password2')
 
-        #check whether the email is already registed
-        user=User.query.filter(User.email==email).first()
+
+        #check whether the email is already registered
+        user = User.query.filter(User.email==email).first()
+
         if user:
-            return u'This email is already registed. Please change another one'
+            return u'This email is already registered. Please change another one'
         else:
     # check whether two passwords are the same
             if password1!=password2:
@@ -75,7 +77,8 @@ def regist():
                 db.session.add(user)
                 db.session.commit()
                 return redirect(url_for('login'))
-
+            
+            
 @app.route('/question/',methods=['GET','POST'])
 @login_required
 def question():
