@@ -67,7 +67,7 @@ def regist():
                 return u'Passwords are not the same.'
             else:
                 password=generate_password_hash(password1)
-                user=User(email = email, username = username, password = password, number_of_post = 0, number_of_comment = 0, grade = 1, friends="???")
+                user=User(email = email, username = username, password = password, number_of_post = 0, number_of_comment = 0, point = 0, grade = 1, friends="???")
                 db.session.add(user)
                 db.session.commit()
                 return redirect(url_for('login'))
