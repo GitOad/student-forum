@@ -146,6 +146,12 @@ def edit():
         db.session.add(information)
         db.session.commit()
         return redirect(url_for('info', user_id=user_id))
+    
+@app.route('/info/<user_id>/')
+def info(user_id):
+    user_model = User.query.filter(User.id == user_id).first()
+    info_model=Information.query.filter(Information.user_id == user_id).first()
+    return render_template('default_personal_detail', user=user_model,info=info_model)
 
 if __name__ == '__main__':
     app.run()
