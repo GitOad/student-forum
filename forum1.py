@@ -36,6 +36,7 @@ def login():
         # if user:
         user = User.query.filter(User.email == email).first()
         if user:
+            user.point = user.point + 5
             if check_password_hash(user.password, password):
                 session['user_id']=user.id
                 #如果想在31天内都不需要登录
@@ -82,6 +83,8 @@ def question():
         question = Question(title=title,content=content)
         user_id=session.get('user_id')
         user=User.query.filter(User.id==user_id).first()
+        user.number_of_post = user.number_of_post + 1
+        user.point = user.point + 20
         question.author =user
         db.session.add(question)
         db.session.commit()
@@ -100,6 +103,8 @@ def add_answer():
     answer = Answer(content=content)
     user_id = session.get('user_id')
     user = User.query.filter(User.id == user_id).first()
+    user.number_of_comment = user.number_of_comment + 1
+    user.point = user.point + 10
     answer.author = user
     answer.question = Question.query.filter(Question.id==question_id).first()
     db.session.add(answer)
