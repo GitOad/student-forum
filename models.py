@@ -15,7 +15,7 @@ class User(db.Model):
     grade = db.Column(db.Integer)
     friends = db.Column(db.Text, nullable=False)
     register_time = db.Column(db.DateTime, default = datetime.now)
-    last_login_time = db.Column(db.DateTime, default = datetime.now)
+    last_login_time = db.Column(db.DateTime)
 
 class Question(db.Model):
     __tablename__ = 'question'
