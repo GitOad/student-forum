@@ -1,6 +1,8 @@
 from exts import db
 from datetime import datetime
 from datetime import date
+from jieba.analyse.analyzer import ChineseAnalyzer
+import flask_whooshalchemyplus
 
 class User(db.Model):
     __tablename__ = 'user'
@@ -19,6 +21,8 @@ class User(db.Model):
 
 class Question(db.Model):
     __tablename__ = 'question'
+    __searchable__ = ['content', 'title']   
+    __analyzer__ = ChineseAnalyzer()   
     id = db.Column(db.Integer, primary_key = True, autoincrement = True)
     title = db.Column(db.String(100), nullable = False)
     content = db.Column(db.Text, nullable = False)
