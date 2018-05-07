@@ -5,12 +5,16 @@ from exts import db
 from werkzeug.security import generate_password_hash, check_password_hash
 from decorators import login_required
 from datetime import datetime
+import flask_whooshalchemyplus 
+from flask_whooshalchemyplus import index_all  
 
 import config
 
 app = Flask(__name__)
 app.config.from_object(config)
 db.init_app(app)
+flask_whooshalchemyplus.init_app(app)  
+index_all(app)   
 
 @app.route('/')
 def index():
@@ -157,6 +161,18 @@ def info(user_id):
     user_model = User.query.filter(User.id == user_id).first()
     info_model=Information.query.filter(Information.user_id == user_id).first()
     return render_template('default_personal_detail.html', user=user_model,info=info_model,time=session.get('login_time'))
+
+@app.route('/search', methods=['POST'])
+def search():
+    if not request.form['search']:
+        return redirect(url_for('index'))
+    return redirect(url_for('search_results', query=request.form['search']))
+
+
+@app.route('/search_results/<query>')
+def search_results(query):
+    results = Question.query.whoosh_search(query).all()
+    return render_template('search_results.html', query=query, results=results)
 
 if __name__ == '__main__':
     app.run()
