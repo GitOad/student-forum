@@ -5,16 +5,22 @@ from exts import db
 from werkzeug.security import generate_password_hash, check_password_hash
 from decorators import login_required
 from datetime import datetime
-import flask_whooshalchemyplus 
-from flask_whooshalchemyplus import index_all  
+from sqlalchemy import or_
+import flask_whooshalchemyplus
+from flask_whooshalchemyplus import index_all
+from flask_wtf import FlaskForm
 
 import config
 
 app = Flask(__name__)
 app.config.from_object(config)
 db.init_app(app)
-flask_whooshalchemyplus.init_app(app)  
-index_all(app)   
+flask_whooshalchemyplus.init_app(app)
+# index_all(app)
+
+@app.route('/aaa/')
+def aaa():
+    return u'aaa'
 
 @app.route('/')
 def index():
@@ -40,6 +46,16 @@ def login():
         if user:
             if check_password_hash(user.password, password):
                 user.point = user.point + 5
+
+                if user.point >= 50 and user.point < 100:
+                    user.grade = 2
+                elif user.point >= 100 and user.point < 200:
+                    user.grade = 3
+                elif user.point >= 200 and user.point < 500:
+                    user.grade = 4
+                else:
+                    user.grade = 5
+
                 session['user_id']=user.id
                 session['login_time'] = user.last_login_time
                 user.last_login_time = datetime.now()
@@ -73,7 +89,8 @@ def register():
                 return u'Passwords are not the same.'
             else:
                 password=generate_password_hash(password1)
-                user=User(email = email, username = username, password = password, number_of_post = 0, number_of_comment = 0, point = 0, grade = 1, friends="???")
+                user=User(email = email, username = username, password = password, number_of_post = 0, number_of_comment = 0, point = 0, grade = 1, friends = "???")
+
                 info = Information(user_id = user.id)
                 info.owner = user
                 db.session.add(user)
@@ -96,7 +113,17 @@ def question():
         user.number_of_post = user.number_of_post + 1
         user.point = user.point + 20
 
+        if user.point >= 50 and user.point < 100:
+            user.grade = 2
+        elif user.point >= 100 and user.point < 200:
+            user.grade = 3
+        elif user.point >= 200 and user.point < 500:
+            user.grade = 4
+        else:
+            user.grade = 5
+
         question.author = user
+        flask_whooshalchemyplus.index_one_model(Question)
         db.session.add(question)
         db.session.commit()
         return redirect(url_for('index'))
@@ -117,6 +144,15 @@ def add_answer():
 
     user.number_of_comment = user.number_of_comment + 1
     user.point = user.point + 10
+
+    if user.point >= 50 and user.point < 100:
+        user.grade = 2
+    elif user.point >= 100 and user.point < 200:
+        user.grade = 3
+    elif user.point >= 200 and user.point < 500:
+        user.grade = 4
+    else:
+        user.grade = 5
 
     answer.author = user
     answer.question = Question.query.filter(Question.id==question_id).first()
@@ -160,19 +196,30 @@ def edit():
 def info(user_id):
     user_model = User.query.filter(User.id == user_id).first()
     info_model=Information.query.filter(Information.user_id == user_id).first()
+
+    f = Following.query.filter(Following.user_id == user_id).all()
+    list = []
+    for id in f:
+        list.append(f.followed_user_id)
+    user_model.friends = list
+
     return render_template('default_personal_detail.html', user=user_model,info=info_model,time=session.get('login_time'))
 
-@app.route('/search', methods=['POST'])
+@app.route('/search', methods=['POST','GET'])
 def search():
-    if not request.form['search']:
+    search=request.form.get('q')
+    if not search:
         return redirect(url_for('index'))
-    return redirect(url_for('search_results', query=request.form['search']))
+    return redirect(url_for('search_results', query=search))
 
 
 @app.route('/search_results/<query>')
 def search_results(query):
     results = Question.query.whoosh_search(query).all()
     return render_template('search_results.html', query=query, results=results)
+
+
+
 
 if __name__ == '__main__':
     app.run()
