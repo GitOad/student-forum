@@ -1,113 +1,123 @@
-#!/usr/bin/env python
-from threading import Lock
-from flask import Flask, render_template, session, request
-from flask_socketio import SocketIO, emit, join_room, leave_room, \
-    close_room, rooms, disconnect
-
-# Set this variable to "threading", "eventlet" or "gevent" to test the
-# different async modes, or leave it set to None for the application to choose
-# the best option based on installed packages.
-async_mode = None
+from flask import Flask, render_template
+from flask_socketio import SocketIO, emit, send, disconnect, join_room, leave_room, rooms
+from exts import db
+from models import User, ChatRecord, ChatConnection
+import config
 
 app = Flask(__name__)
+db.init_app(app)
+app.config.from_object(config)
 app.config['SECRET_KEY'] = 'secret!'
-socketio = SocketIO(app, async_mode=async_mode)
-thread = None
-thread_lock = Lock()
+socketio = SocketIO(app)
 
-
-def background_thread():
-    """Example of how to send server generated events to clients."""
-    count = 0
-    while True:
-        socketio.sleep(10)
-        count += 1
-        socketio.emit('my_response',
-                      {'data': 'Server generated event', 'count': count},
-                      namespace='/test')
-
+myID = 1
+myName = 'Erick'
+myPss = '123'
+uid = 2
 
 @app.route('/')
 def index():
-    return render_template('index.html', async_mode=socketio.async_mode)
+	return render_template('index.html')
 
+def selectConnection(id1, id2):
+	connection1 = ChatConnection.query.filter(ChatConnection.u_id1==id1, ChatConnection.u_id2==id2)
+	connection2 = ChatConnection.query.filter(ChatConnection.u_id1==id2, ChatConnection.u_id2==id1)
+	if connection1.one_or_none() == None and connection2.one_or_none() == None:
+		return None
+	else:
+		if connection1.one_or_none() == None:
+			return connection2
+		else:
+			return connection1
 
-@socketio.on('my_event', namespace='/test')
+# collect data from client
+@socketio.on('my event', namespace = '/test')
 def test_message(message):
-    session['receive_count'] = session.get('receive_count', 0) + 1
-    emit('my_response',
-         {'data': message['data'], 'count': session['receive_count']})
+	content = message['data']
+	if content != "I'm connected!" and r != "Connected!":
+		connection = selectConnection(myID, uid)
+		# if connection == None:
+		# 	create_connect = ChatConnection(u_id1 = myID, u_id2 = uid)
+		# 	db.session.add(create_connect)
+		# 	db.session.commit()
+		connectionid = connection.first().id
+		record = ChatRecord(content = content, author_id = myID, chat_id = connectionid)
+		db.session.add(record)
+		db.session.commit()
+	emit('my response', {'data': message['data']})
 
 
-@socketio.on('my_broadcast_event', namespace='/test')
-def test_broadcast_message(message):
-    session['receive_count'] = session.get('receive_count', 0) + 1
-    emit('my_response',
-         {'data': message['data'], 'count': session['receive_count']},
-         broadcast=True)
+# show status and chatting history
+@socketio.on('connect', namespace = '/test')
+def test_connect():
+	emit('my response', {'data': '(system):Connected!'})
+
+	connection = selectConnection(myID, uid)
+	if connection == None:
+		create_connect = ChatConnection(u_id1 = myID, u_id2 = uid)
+		db.session.add(create_connect)
+		db.session.commit()
+	else:
+		connectionid = connection.first().id
+
+		records = ChatRecord.query.filter(ChatRecord.chat_id==connectionid).all()
+		#print(records)
+		
+		for r in records:
+			if r.author_id == myID:
+				t = r.create_time
+				r = r.content
+				if r != "I'm connected!" and r != "Connected!":
+					emit('my response', {'data': '(historyI ' + str(t) + ')'+ str(r)})	
+			else:
+				r = r.content
+				if r != "I'm connected!" and r != "Connected!":
+					emit('her response', {'data': '(historyHer ' + str(t) + ')' + str(r)})	
 
 
+# connect to another exact client
 @socketio.on('join', namespace='/test')
 def join(message):
-    join_room(message['room'])
-    session['receive_count'] = session.get('receive_count', 0) + 1
-    emit('my_response',
-         {'data': 'In rooms: ' + ', '.join(rooms()),
-          'count': session['receive_count']})
+	#uid = message['room']
+	connection = selectConnection(myID, uid)
+	if connection == None:
+		create_connect = ChatConnection(u_id1 = myID, u_id2 = uid)
+		db.session.add(create_connect)
+		db.session.commit()
+	connectionid = selectConnection(myID, uid).first().id
+	join_room(connectionid)
+	emit('my response', {'data': 'In room: ' + str(connectionid)})
+
+
+@socketio.on('my_room_event', namespace='/test')
+def send_room_message(message):	
+	connection = selectConnection(myID, uid)
+	connectionid = selectConnection(myID, uid).first().id
+	content = message['data']
+	connection = selectConnection(myID, uid)
+	record = ChatRecord(content = content, author_id = myID, chat_id = connectionid)
+	db.session.add(record)
+	db.session.commit()
+	emit('my response', {'data': message['data']}, room=connectionid)
 
 
 @socketio.on('leave', namespace='/test')
 def leave(message):
-    leave_room(message['room'])
-    session['receive_count'] = session.get('receive_count', 0) + 1
-    emit('my_response',
-         {'data': 'In rooms: ' + ', '.join(rooms()),
-          'count': session['receive_count']})
+	#uid = message['room']
+	connectionid = selectConnection(myID, uid).first().id
+	leave_room(connectionid)
+	emit('my response', {'data': 'Out room: ' + str(connectionid)})
 
 
-@socketio.on('close_room', namespace='/test')
-def close(message):
-    session['receive_count'] = session.get('receive_count', 0) + 1
-    emit('my_response', {'data': 'Room ' + message['room'] + ' is closing.',
-                         'count': session['receive_count']},
-         room=message['room'])
-    close_room(message['room'])
-
-
-@socketio.on('my_room_event', namespace='/test')
-def send_room_message(message):
-    session['receive_count'] = session.get('receive_count', 0) + 1
-    emit('my_response',
-         {'data': message['data'], 'count': session['receive_count']},
-         room=message['room'])
-
-
-@socketio.on('disconnect_request', namespace='/test')
-def disconnect_request():
-    session['receive_count'] = session.get('receive_count', 0) + 1
-    emit('my_response',
-         {'data': 'Disconnected!', 'count': session['receive_count']})
-    disconnect()
-
-
-@socketio.on('my_ping', namespace='/test')
-def ping_pong():
-    emit('my_pong')
-
-
-@socketio.on('connect', namespace='/test')
-def test_connect():
-    global thread
-    with thread_lock:
-        if thread is None:
-            thread = socketio.start_background_task(target=background_thread)
-    emit('my_response', {'data': 'Connected', 'count': 0})
-
+# close socket connection
+@socketio.on('disconnect_request', namespace = '/test')
+def test_disconnect():
+	emit('my response', {'data': '(system)Disconnected!'})
+	disconnect()
 
 @socketio.on('disconnect', namespace='/test')
 def test_disconnect():
-    print('Client disconnected', request.sid)
-
+    print('Client disconnected')
 
 if __name__ == '__main__':
-    socketio.run(app, debug=True)
+	socketio.run(app)
