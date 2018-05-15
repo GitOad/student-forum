@@ -17,35 +17,17 @@
             });
 
             socket.on('my response', function(msg) {
-                $('#log').append('<p>I: ' + msg.data + '</p>');
+                $('#log').append('<h2>I:</h2> <p>I ' + msg.time + msg.data + '</p>');
             });
 
             socket.on('her response', function(msg) {
-                $('#log2').append('<p>H: ' + msg.data + '</p>');
+                $('#log').append('<h2 align = "right">H:</h2> <p align = "right">H ' + msg.time + msg.data + '</p>');
             });
 
-
-            $('form#emit').submit(function(event) {
-                socket.emit('my event', {data: $('#emit_data').val()});
-                return false;
-            });
-            
-            $('form#join').submit(function(event) {
-                socket.emit('join', {room: $('#join_room').val()});
-                return false;
-            });
-            $('form#leave').submit(function(event) {
-                socket.emit('leave', {room: $('#leave_room').val()});
-                return false;
-            });
             $('form#send_room').submit(function(event) {
-                socket.emit('my_room_event', {room: $('#room_name').val(), data: $('#room_data').val()});
+                socket.emit('my_room_event', {data: $('#room_data').val()});
                 return false;
             });
-/*            $('form#close').submit(function(event) {
-                socket.emit('close_room', {room: $('#close_room').val()});
-                return false;
-            });*/
             $('form#disconnect').submit(function(event) {
                 socket.emit('disconnect_request');
                 return false;
@@ -54,36 +36,16 @@
     </script>
 </head>
 <body>
-    <h1>Flask-SocketIO Test</h1>
+    <h1>Chat ROOM</h1>
     <h2>Send:</h2>
-    <form id="emit" method="POST" action='#'>
-        <input type="text" name="emit_data" id="emit_data" placeholder="Message">
-        <input type="submit" value="Echo">
-    </form>
-
-    <form id="join" method="POST" action='#'>
-        <input type="text" name="join_room" id="join_room" placeholder="Room Name">
-        <input type="submit" value="Join Room">
-    </form>
-    <form id="leave" method="POST" action='#'>
-        <input type="text" name="leave_room" id="leave_room" placeholder="Room Name">
-        <input type="submit" value="Leave Room">
-    </form>
     <form id="send_room" method="POST" action='#'>
-        <input type="text" name="room_name" id="room_name" placeholder="Room Name">
         <input type="text" name="room_data" id="room_data" placeholder="Message">
-        <input type="submit" value="Send to Room">
+        <input type="submit" value="Send">
     </form>
- <!--    <form id="close" method="POST" action="#">
-        <input type="text" name="close_room" id="close_room" placeholder="Room Name">
-        <input type="submit" value="Close Room">
-    </form> -->
     <form id="disconnect" method="POST" action="#">
         <input type="submit" value="Disconnect">
     </form>
-    <h2>I:</h2>
+    
     <div id="log"></div>
-    <h2 align = "right">H:</h2>
-    <div  align = "right" id="log2"></div>
 </body>
 </html>
