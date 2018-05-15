@@ -11,8 +11,6 @@ app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app)
 
 myID = 1
-myName = 'Erick'
-myPss = '123'
 uid = 2
 
 @app.route('/')
@@ -29,22 +27,6 @@ def selectConnection(id1, id2):
 			return connection2
 		else:
 			return connection1
-
-# collect data from client
-@socketio.on('my event', namespace = '/test')
-def test_message(message):
-	content = message['data']
-	if content != "I'm connected!" and r != "Connected!":
-		connection = selectConnection(myID, uid)
-		# if connection == None:
-		# 	create_connect = ChatConnection(u_id1 = myID, u_id2 = uid)
-		# 	db.session.add(create_connect)
-		# 	db.session.commit()
-		connectionid = connection.first().id
-		record = ChatRecord(content = content, author_id = myID, chat_id = connectionid)
-		db.session.add(record)
-		db.session.commit()
-	emit('my response', {'data': message['data']})
 
 
 # show status and chatting history
@@ -68,51 +50,34 @@ def test_connect():
 				t = r.create_time
 				r = r.content
 				if r != "I'm connected!" and r != "Connected!":
-					emit('my response', {'data': '(historyI ' + str(t) + ')'+ str(r)})	
+					emit('my response', {'data': str(r), 'time': '(history ' + str(t) + '): '})	
 			else:
 				r = r.content
 				if r != "I'm connected!" and r != "Connected!":
-					emit('her response', {'data': '(historyHer ' + str(t) + ')' + str(r)})	
+					emit('her response', {'data': str(r), 'time': '(history ' + str(t) + '): '})	
 
-
-# connect to another exact client
-@socketio.on('join', namespace='/test')
-def join(message):
-	#uid = message['room']
-	connection = selectConnection(myID, uid)
-	if connection == None:
-		create_connect = ChatConnection(u_id1 = myID, u_id2 = uid)
-		db.session.add(create_connect)
-		db.session.commit()
-	connectionid = selectConnection(myID, uid).first().id
-	join_room(connectionid)
-	emit('my response', {'data': 'In room: ' + str(connectionid)})
 
 
 @socketio.on('my_room_event', namespace='/test')
 def send_room_message(message):	
 	connection = selectConnection(myID, uid)
 	connectionid = selectConnection(myID, uid).first().id
+	join_room(connectionid)
 	content = message['data']
 	connection = selectConnection(myID, uid)
 	record = ChatRecord(content = content, author_id = myID, chat_id = connectionid)
 	db.session.add(record)
 	db.session.commit()
-	emit('my response', {'data': message['data']}, room=connectionid)
-
-
-@socketio.on('leave', namespace='/test')
-def leave(message):
-	#uid = message['room']
-	connectionid = selectConnection(myID, uid).first().id
-	leave_room(connectionid)
-	emit('my response', {'data': 'Out room: ' + str(connectionid)})
+	t = record.create_time
+	emit('my response', {'data': message['data'], 'time': '(history ' + str(t) + '): '}, room=connectionid)
 
 
 # close socket connection
 @socketio.on('disconnect_request', namespace = '/test')
 def test_disconnect():
 	emit('my response', {'data': '(system)Disconnected!'})
+	emit('my response', {'data': 'Out room: ' + str(connectionid)})
+	leave_room(connectionid)
 	disconnect()
 
 @socketio.on('disconnect', namespace='/test')
