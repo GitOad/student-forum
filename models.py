@@ -34,8 +34,8 @@ class Question(db.Model):
     create_time = db.Column(db.DateTime, default = datetime.now)
     author_id = db.Column(db.Integer,db.ForeignKey('user.id'))
 
-
-    author = db.relationship('User',backref = db.backref('questions'))
+    comments = db.relationship('Answer', backref='question', lazy='dynamic', cascade='all, delete-orphan', passive_deletes=True)
+    # author = db.relationship('User',backref = db.backref('questions'))
 
     def __repr__(self):
         return '{0}(title={1})'.format(self.__class__.__name__, self.title)
@@ -46,12 +46,12 @@ class Answer(db.Model):
     id = db.Column(db.Integer, primary_key = True, autoincrement = True)
     content = db.Column(db.Text, nullable = False)
     # total_reported_time = db.Column(db.Integer)  #被举报的总数
-    question_id = db.Column(db.Integer, db.ForeignKey('question.id'))
-    author_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    question_id = db.Column(db.Integer, db.ForeignKey('question.id', ondelete='CASCADE'))
+    author_id = db.Column(db.Integer)
     create_time = db.Column(db.DateTime, default = datetime.now)
 
     question = db.relationship('Question',backref = db.backref('answers',order_by = id.desc()))
-    author = db.relationship('User',backref = db.backref('answers'))
+    # author = db.relationship('User',backref = db.backref('answers'))
 
 class Information(db.Model):
     __tablename__ = 'info'
