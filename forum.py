@@ -9,6 +9,8 @@ from sqlalchemy import or_
 import flask_whooshalchemyplus
 from flask_whooshalchemyplus import index_all
 from flask_uploads import UploadSet, IMAGES, configure_uploads, ALL
+from itsdangerous import URLSafeTimedSerializer
+from flask_mail import Message,Mail
 
 import config,os
 
@@ -16,6 +18,7 @@ app = Flask(__name__)
 app.config.from_object(config)
 db.init_app(app)
 flask_whooshalchemyplus.init_app(app)
+mail = Mail(app)
 
 app.config['UPLOADED_PHOTO_DEST'] = '/static/images'
 app.config['UPLOADED_PHOTO_ALLOW'] = IMAGES
@@ -90,14 +93,33 @@ def register():
                 return u'Passwords are not the same.'
             else:
                 password=generate_password_hash(password1)
-                user=User(email = email, username = username, password = password, number_of_post = 0, number_of_comment = 0, point = 0, grade = 1, photo = "!!!")
+                user=User(email = email,
+                          username = username,
+                          password = password,
+                          number_of_post = 0,
+                          number_of_comment = 0,
+                          point = 0,
+                          grade = 1,
+                          photo="!!!",
+                          confirmed=False
+                          )
 
                 info = Information(user_id = user.id)
                 info.owner = user
                 db.session.add(user)
                 db.session.add(info)
                 db.session.commit()
-                return redirect(url_for('login'))
+                token = generate_confirmation_token(user.email)
+
+                confirm_url = url_for('confirm_email', token=token, _external=True)
+                html = render_template('activate.html', confirm_url=confirm_url)
+                subject = "Please confirm your email"
+                send_email(user.email, subject, html)
+
+                login_user(user)
+
+                return redirect(url_for("unconfirmed"))
+                # return redirect(url_for('login'))
 
 @app.route('/question/',methods=['GET','POST'])
 @login_required
@@ -265,6 +287,91 @@ def search_results(query):
         return render_template('search_results.html', user=user, query=query, results=results)
     else:
         return render_template('search_results.html', query=query, results=results)
+    
+def generate_confirmation_token(email):
+    serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
+    return serializer.dumps(email, salt=app.config['SECURITY_PASSWORD_SALT'])
+
+
+def confirm_token(token, expiration=3600):
+    serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
+    try:
+        email = serializer.loads(
+            token,
+            salt=app.config['SECURITY_PASSWORD_SALT'],
+            max_age=expiration
+        )
+    except:
+        return False
+    return email
+
+@app.route('/confirm/<token>')
+@login_required
+def confirm_email(token):
+    try:
+        email = confirm_token(token)
+    except:
+        return u'The confirmation link is invalid or has expired.'
+    user = User.query.filter_by(email=email).first_or_404()
+    if user.confirmed:
+        return u'Account already confirmed. Please login.'
+    else:
+        user.confirmed = True
+        user.confirmed_on = datetime.now()
+        db.session.add(user)
+        db.session.commit()
+    return redirect(url_for('index'))
+
+def send_email(to, subject, template):
+    msg = Message(
+        subject,
+        recipients=[to],
+        html=template,
+        sender='forumaces@126.com'
+        )
+    mail.send(msg)
+
+def login_user(user):
+    user.point = user.point + 5
+
+    if user.point >= 50 and user.point < 100:
+        user.grade = 2
+    elif user.point >= 100 and user.point < 200:
+        user.grade = 3
+    elif user.point >= 200 and user.point < 500:
+        user.grade = 4
+    else:
+        user.grade = 5
+
+    session['user_id'] = user.id
+    session['login_time'] = user.last_login_time
+    user.last_login_time = datetime.now()
+    # 如果想在31天内都不需要登录
+    session.permanent = True
+    db.session.add(user)
+    db.session.commit()
+
+@app.route('/unconfirmed')
+@login_required
+def unconfirmed():
+    user_id = session.get('user_id')
+    user = User.query.filter(User.id == user_id).first()
+    if user.confirmed:
+        return redirect(url_for('index'))
+    return render_template('unconfirmed.html')
+
+@app.route('/resend')
+@login_required
+def resend_confirmation():
+    user_id = session.get('user_id')
+    user = User.query.filter(User.id == user_id).first()
+    token = generate_confirmation_token(user.email)
+    confirm_url = url_for('confirm_email', token=token, _external=True)
+    html = render_template('activate.html', confirm_url=confirm_url)
+    subject = "Please confirm your email"
+    send_email(user.email, subject, html)
+    return redirect(url_for('unconfirmed'))
+
 
 
 if __name__ == '__main__':
