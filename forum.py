@@ -145,7 +145,7 @@ def question():
         else:
             user.grade = 5
 
-        question.author = user
+        question.author_id = user_id
         flask_whooshalchemyplus.index_one_model(Question)
         db.session.add(question)
         db.session.commit()
@@ -182,7 +182,7 @@ def add_answer():
     else:
         user.grade = 5
 
-    answer.author = user
+    answer.author_id = user_id
     answer.question = Question.query.filter(Question.id==question_id).first()
     db.session.add(answer)
     db.session.commit()
