@@ -171,22 +171,48 @@ def edit():
     if request.method == 'GET':
         return render_template('edit_personal_detail.html')
     else:
-        birthday = request.form.get('birthday')
-        gender = request.form.get('gender')
-        age = request.form.get('age')
-        major = request.form.get('major')
-        group = request.form.get('group')#group 代表class
-        hobbies = request.form.get('hobbies')
-        introduction=request.form.get('introduction')
+        if 'photo' in request.files: #如果用户上传了头像
+            filename = photos.save(request.files['photo'])
+            url = photos.url(filename)
+
+            username = request.form.get('username')
+            birthday = request.form.get('birthday')
+            gender = request.form.get('gender')
+            age = request.form.get('age')
+            major = request.form.get('major')
+            group = request.form.get('group')  # group 代表class
+            hobbies = request.form.get('hobbies')
+            introduction = request.form.get('introduction')
+        else:
+            url = "!!!"
+            username = request.form.get('username')
+            birthday = request.form.get('birthday')
+            gender = request.form.get('gender')
+            age = request.form.get('age')
+            major = request.form.get('major')
+            group = request.form.get('group')#group 代表class
+            hobbies = request.form.get('hobbies')
+            introduction = request.form.get('introduction')
+
+
 
         user_id = session.get('user_id')
         user = User.query.filter(User.id == user_id).first()
-        information = Information.query.filter(Information.user_id == user_id).first()
+        user.username = username
 
-        information = Information(birthday=birthday, gender=gender, age=age, major=major, group=group, hobbies=hobbies,introduction=introduction)
+        information = Information.query.filter(Information.user_id == user_id).first()
+        information.birthday = birthday
+        information.gender = gender
+        information.age = age
+        information.major = major
+        information.group = group
+        information.hobbies = hobbies
+        information.introduction = introduction
+        information.photo = url
 
         information.owner = user
         db.session.add(information)
+        db.session.add(user)
         db.session.commit()
         return redirect(url_for('info', user_id=user_id))
 
