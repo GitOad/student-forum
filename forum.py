@@ -1,6 +1,6 @@
-from flask import Flask
+from flask import Flask,abort
 from flask import render_template,request,redirect,url_for,session
-from models import User,Question,Answer,Information
+from models import User,Question,Answer,Information,Following
 from exts import db
 from werkzeug.security import generate_password_hash, check_password_hash
 from decorators import login_required
@@ -8,19 +8,20 @@ from datetime import datetime
 from sqlalchemy import or_
 import flask_whooshalchemyplus
 from flask_whooshalchemyplus import index_all
-from flask_wtf import FlaskForm
+from flask_uploads import UploadSet, IMAGES, configure_uploads, ALL
 
-import config
+import config,os
 
 app = Flask(__name__)
 app.config.from_object(config)
 db.init_app(app)
 flask_whooshalchemyplus.init_app(app)
-# index_all(app)
 
-@app.route('/aaa/')
-def aaa():
-    return u'aaa'
+app.config['UPLOADED_PHOTO_DEST'] = '/static/images'
+app.config['UPLOADED_PHOTO_ALLOW'] = IMAGES
+
+photos = UploadSet('PHOTO')
+configure_uploads(app, photos)
 
 @app.route('/')
 def index():
@@ -89,7 +90,7 @@ def register():
                 return u'Passwords are not the same.'
             else:
                 password=generate_password_hash(password1)
-                user=User(email = email, username = username, password = password, number_of_post = 0, number_of_comment = 0, point = 0, grade = 1, friends = "???")
+                user=User(email = email, username = username, password = password, number_of_post = 0, number_of_comment = 0, point = 0, grade = 1, photo = "!!!")
 
                 info = Information(user_id = user.id)
                 info.owner = user
@@ -131,7 +132,12 @@ def question():
 @app.route('/detail/<question_id>/')
 def detail(question_id):
     question_model = Question.query.filter(Question.id==question_id).first()
-    return render_template('detail.html',question=question_model)
+    if session.get('user_id'):
+        user_id = session.get('user_id')
+        user = User.query.filter(User.id == user_id).first()
+        return render_template('detail.html', user=user, question=question_model)
+    else:
+        return render_template('detail.html', question=question_model)
 
 @app.route('/add_answer/',methods=['POST'])
 @login_required
@@ -199,6 +205,8 @@ def edit():
         user_id = session.get('user_id')
         user = User.query.filter(User.id == user_id).first()
         user.username = username
+        user.photo = url
+        user.introduction = introduction
 
         information = Information.query.filter(Information.user_id == user_id).first()
         information.birthday = birthday
@@ -207,8 +215,8 @@ def edit():
         information.major = major
         information.group = group
         information.hobbies = hobbies
-        information.introduction = introduction
-        information.photo = url
+
+
 
         information.owner = user
         db.session.add(information)
@@ -221,15 +229,23 @@ def edit():
 @login_required
 def info(user_id):
     user_model = User.query.filter(User.id == user_id).first()
-    info_model=Information.query.filter(Information.user_id == user_id).first()
+    info_model = Information.query.filter(Information.user_id == user_id).first()
 
-    f = Following.query.filter(Following.user_id == user_id).all()
-    list = []
-    for id in f:
-        list.append(f.followed_user_id)
-    user_model.friends = list
+    info_model.number_of_following = Following.query.filter(Following.user_id == user_id).count()
+    info_model.number_of_followed = Following.query.filter(Following.followed_user_id == user_id).count()
 
-    return render_template('default_personal_detail.html', user=user_model,info=info_model,time=session.get('login_time'))
+    questions = {
+        'questions': Question.query.filter(Question.author_id == user_id).all()
+    }
+    # questions = {
+    #     'questions': Question.query.filter(Question.author_id == user_id).all()
+    # }
+    # f = Following.query.filter(Following.user_id == user_id).all()
+
+    # user_model.friends = f[1].followed_user_id
+
+
+    return render_template('default_personal_detail.html', **questions,user=user_model,info=info_model,time=session.get('login_time'))
 
 @app.route('/search', methods=['POST','GET'])
 def search():
@@ -242,9 +258,13 @@ def search():
 @app.route('/search_results/<query>')
 def search_results(query):
     results = Question.query.whoosh_search(query).all()
-    return render_template('search_results.html', query=query, results=results)
 
-
+    if session.get('user_id'):
+        user_id = session.get('user_id')
+        user = User.query.filter(User.id == user_id).first()
+        return render_template('search_results.html', user=user, query=query, results=results)
+    else:
+        return render_template('search_results.html', query=query, results=results)
 
 
 if __name__ == '__main__':
