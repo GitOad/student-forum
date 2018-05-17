@@ -20,6 +20,8 @@ class User(db.Model):
     introduction = db.Column(db.Text)
 
     photo = db.Column(db.String(100), nullable=True)  # 存储图片的路径
+    confirmed = db.Column(db.Boolean, nullable=False, default=False)#新！！
+    confirmed_on = db.Column(db.DateTime, nullable=True)#新！！
 
 class Question(db.Model):
     __tablename__ = 'question'
