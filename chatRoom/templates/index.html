@@ -2,6 +2,63 @@
 <html>
 <head>
     <title>Flask-SocketIO</title>
+    <style type="text/css">
+        .talk_box{
+            width: 50%;
+            height: 500px;
+            border: 1px solid #666;
+            margin:50px auto 0;
+            background: #f9f9f9; 
+        }
+        .talk_show{
+            width: 80%;
+            height: 80%;
+            border:1px solid #666;
+            background: #fff;
+            margin:10px auto 0;
+            overflow: auto; 
+        }
+        .talk_input{
+            width:580px;
+            margin:10px;
+        }
+        .talk_word{
+            width: 420px;
+            height: 26px;
+            padding: 0px;
+            float:left;
+            margin-left:10px;
+            outline: none;
+            text-indent: 10px; 
+        }
+        .talk_sub{
+            width: 56px;
+            height: 30px;
+            float:left;
+            margin-left: 10px;
+        }
+        .aChat{
+            margin: 10px;
+        }
+        .aChat span{
+            display: inline-block;
+            background: #0181cc;
+            border-radius: 10px;
+            color:#fff;
+            padding: 5px 10px;
+        }
+        .bChat{
+            margin: 10px;
+            text-align: right;
+        } 
+        .bChat span{
+            display: inline-block;
+            background: #ef8201;
+            border-radius: 10px;
+            color:#fff;
+            padding: 5px 10px;
+        }
+    </style>
     <script type="text/javascript" src="//code.jquery.com/jquery-1.4.2.min.js"></script>
     <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.5/socket.io.min.js"></script>
     <script type="text/javascript" charset="utf-8">
@@ -17,35 +74,48 @@
             });
 
             socket.on('my response', function(msg) {
-                $('#log').append('<h2>I:</h2> <p>I ' + msg.time + msg.data + '</p>');
+                $('#log').append('<h2>I:</h2> <div class="aChat"><span>I ' + msg.time + '<br>' + msg.data + '</span></div>');
+                add()
             });
 
             socket.on('her response', function(msg) {
-                $('#log').append('<h2 align = "right">H:</h2> <p align = "right">H ' + msg.time + msg.data + '</p>');
+                $('#log').append('<h2 align = "right">H:</h2> <div class="bChat"><span>H ' + msg.time + '<br>' + msg.data + '</span></div>');
+                add()
             });
 
             $('form#send_room').submit(function(event) {
                 socket.emit('my_room_event', {data: $('#room_data').val()});
                 return false;
             });
+
             $('form#disconnect').submit(function(event) {
                 socket.emit('disconnect_request');
                 return false;
             });
+
+            function add(){
+                var div = document.getElementById('scrolldiv');
+                div.scrollTop = div.scrollHeight;
+            }
+
         });
     </script>
 </head>
 <body>
     <h1>Chat ROOM</h1>
-    <h2>Send:</h2>
-    <form id="send_room" method="POST" action='#'>
-        <input type="text" name="room_data" id="room_data" placeholder="Message">
-        <input type="submit" value="Send">
-    </form>
-    <form id="disconnect" method="POST" action="#">
-        <input type="submit" value="Disconnect">
-    </form>
-    
-    <div id="log"></div>
+
+    <div class="talk_box">
+        <div class="talk_show" id="scrolldiv">
+            <div id="log"></div>
+        </div>
+        <form class="talk_input" id="send_room" method="POST" action='#'>
+
+            <input type="text" class="talk_word" name="room_data" id="room_data" placeholder="Message">
+            <input type="submit" class="talk_sub" value="Send">
+        </form>
+        <form id="disconnect" method="POST" action="#">
+            <input type="submit" class="talk_sub" value="exit">
+        </form>
+    </div>
 </body>
 </html>
