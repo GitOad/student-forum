@@ -13,6 +13,10 @@ admin = Admin(adm,name=u'后台管理系统')
 
 db = SQLAlchemy(adm)
 
+@expose('/')
+def index(self):
+	return self.render('admin/index.html') 
+
 class MyModelViewBase(ModelView):
 	column_display_pk = True
 	column_display_all_relations = True
